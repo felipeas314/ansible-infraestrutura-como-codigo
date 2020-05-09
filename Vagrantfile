@@ -8,7 +8,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "wordpress" do |m|
-	m.vm.network "private_network", ip: "172.17.177.40"
+	m.vm.network "private_network", ip: "172.17.177.51"
   end
 
 end
