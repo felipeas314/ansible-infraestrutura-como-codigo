@@ -1,5 +1,11 @@
 ---
 - hosts: all
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
+      become: yes
   tasks:
     - name: 'Instala dependencia do sistema operacional'
       apt: 
@@ -30,3 +36,43 @@
         password: 12345
         priv: 'wordpress_db.*:ALL'
         state: present
+
+    - name: 'Baixa o arquivo de instalação do Wordpress'
+      get_url:
+        url: 'https://br.wordpress.org/wordpress-5.0.9-pt_BR.tar.gz'
+        dest: '/tmp/wordpress.tar.gz'
+
+    - name: 'Descompactar arquivo'
+      unarchive:
+        src: '/tmp/wordpress.tar.gz'
+        dest: '/var/www/'
+        remote_src: yes
+      become: yes
+    
+    - name: 'Copiando arquivo wp-config-sample para wp-config'
+      copy:
+        src: '/var/www/wordpress/wp-config-sample.php'
+        dest: '/var/www/wordpress/wp-config.php'
+        remote_src: yes
+      become: yes
+    
+    - name: 'Configurando o wp-config com as entradas do banco de dados'
+      replace:
+        path: '/var/www/wordpress/wp-config.php'
+        regexp: '{{ item.regex }}'
+        replace: '{{ item.value }}'
+      with_items:
+        - {regex: 'nome_do_banco_de_dados_aqui', value: 'wordpress_db' }
+        - {regex: 'nome_de_usuario_aqui', value: 'wordpress_db'}
+        - {regex: 'senha_aqui', value: '12345'}
+      become: yes
+
+    - name: 'Configurando o apache para servir o Wordpress'
+      copy: 
+        src: 'files/000-default.conf'
+        dest: '/etc/apache2/sites-available/000-default.conf'
+      become: yes
+      notify:
+        - restart apache
+
+        
